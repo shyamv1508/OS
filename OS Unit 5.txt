@@ -1,0 +1,2094 @@
+﻿21CSC202J 
+OPERATING SYSTEMS  UNIT – V 
+
+Course Learning Rationale (CLR):
+CLR-4: Identify and tell the various embedded operating systems and computer 
+security concepts.
+CLR-5: Name the various computer security techniques in windows and Linux
+
+Course Learning Outcomes (CLO):
+
+CLO-5 :Demonstrate different device and resource management techniques for 
+memory utilization with security mechanisms
+
+1
+
+17.1
+
+
+
+Topics covered
+
+ Goals of Protection 
+
+ Principles of Protection
+
+ Protection Rings
+
+ Domain of Protection
+
+ Access Matrix 
+
+ Implementation of Access Matrix 
+
+ Revocation of Access Rights 
+
+ Role-based Access Control
+
+ Mandatory Access Control (MAC)
+
+ Capability-Based Systems 
+
+ Other Protection Implementation Methods
+
+ Language-based Protection
+
+17.2
+
+
+
+Objectives
+
+ Discuss the goals and principles of protection in a modern 
+computer system
+
+ Explain how protection domains combined with an access 
+matrix are used to specify the resources a process may access
+
+ Examine capability and language-based protection systems
+
+ Describe how protection mechanisms can mitigate system 
+attacks
+
+17.3
+
+
+
+Goals of Protection 
+
+ In one protection model,  computer consists of a collection of 
+objects, hardware or software
+
+ Each object has a unique name and can be accessed through 
+a well-defined set of operations
+
+ Protection problem - ensure that each object is accessed 
+correctly and only by those processes that are allowed to do so
+
+17.4
+
+
+
+Principles of Protection 
+
+ Guiding principle – principle of least privilege
+
+ Programs, users and systems should be given just enough privileges 
+to perform their tasks
+
+ Properly set permissions can limit damage if entity has a bug, gets 
+abused
+
+ Can be static (during life of system, during life of process) 
+
+ Or dynamic (changed by process as needed) – domain switching, 
+privilege escalation
+
+ Compartmentalization a derivative concept regarding access to 
+data 
+
+ Process of protecting each individual system component through the use 
+of specific permissions and access restrictions
+
+17.5
+
+
+
+Principles of Protection (Cont.) 
+
+ Must consider “grain” aspect
+
+ Rough-grained  privilege management easier, simpler, but least 
+privilege now done in large chunks
+
+ For example, traditional Unix processes either have abilities of the 
+associated user, or of root
+
+ Fine-grained management more complex, more overhead, but 
+more protective
+
+ File ACL lists, RBAC
+
+ Domain can be user, process, procedure
+
+ Audit trail – recording all protection-orientated activities, 
+important to understanding what happened, why, and 
+catching things that shouldn’t
+
+ No single principle is a panacea for security vulnerabilities – 
+need defense in depth
+
+17.6
+
+
+
+Protection Rings 
+
+ Components ordered by amount of privilege and protected 
+from each other
+
+ For example, the kernel is in one ring and user applications in 
+another
+
+ This privilege separation requires hardware support
+
+ Gates used to transfer between levels, for example the syscall Intel 
+instruction
+
+ Also traps and interrupts
+
+ Hypervisors introduced the need for yet another ring
+
+ ARMv7 processors added TrustZone(TZ) ring to protect crypto 
+functions with access via new Secure Monitor Call (SMC) instruction
+
+ Protecting NFC secure element and crypto keys from even the kernel
+
+17.7
+
+
+
+Protection Rings (MULTICS) 
+
+ Let Di and Dj be any two domain rings
+
+ If j < I  Di   Dj
+
+17.8
+
+
+
+Android use of TrustZone 
+
+17.9
+
+
+
+ARM CPU Architecture
+
+17.10
+
+
+
+Domain of Protection 
+
+ Rings of protection separate functions into domains 
+and order them hierarchically  
+
+ Computer can be treated as processes and objects
+
+ Hardware objects (such as devices) and software objects 
+(such as files, programs, semaphores
+
+ Process for example should only have access to objects 
+it currently requires to complete its task – the need-to-
+know principle
+
+17.11
+
+
+
+Domain of Protection (Cont.) 
+
+ Implementation can be via process operating in a protection 
+domain
+
+ Specifies resources process may access
+
+ Each domain specifies set of objects and types of operations on 
+them
+
+ Ability to execute an operation on an object is an access right
+
+ <object-name, rights-set>
+
+ Domains may share access rights
+
+ Associations can be static or dynamic
+
+ If dynamic, processes can domain switch
+
+17.12
+
+
+
+Domain Structure 
+
+ Access-right = <object-name, rights-set>
+where rights-set is a subset of all valid operations that can be 
+performed on the object 
+
+ Domain = set of access-rights 
+
+17.13
+
+
+
+Domain Implementation (UNIX) 
+
+ Domain = user-id
+
+ Domain switch accomplished via file system
+
+ Each file has associated with it a domain bit (setuid bit)
+
+ When file is executed and setuid = on, then user-id is set to owner of 
+the file being executed
+
+  When execution completes user-id is reset 
+
+ Domain switch accomplished via passwords
+
+ su command temporarily switches to another user’s domain when 
+other domain’s password provided
+
+ Domain switching via commands
+
+ sudo command prefix executes specified command in another 
+domain (if original domain has privilege or password given)
+
+17.14
+
+
+
+Domain Implementation
+(Android App IDs)
+
+ In Android, distinct user IDs are provided on a per-application basis
+
+ When an application is installed, the installd daemon assigns it a 
+distinct user ID (UID) and group ID (GID), along with a private data 
+directory (/data/data/<appname>) whose ownership is granted to 
+this UID/GID combination alone. 
+
+ Applications on the device enjoy the same level of protection 
+provided by UNIX systems to separate users
+
+ A quick and simple way to provide isolation, security, and privacy. 
+
+ The mechanism is extended by modifying the kernel to allow certain 
+operations (such as networking sockets) only to members of a 
+particular GID (for example, AID INET, 3003)
+
+ A further enhancement by Android is to define certain UIDs as 
+“isolated,” prevents them from initiating RPC requests to any but a 
+bare minimum of services
+
+17.15
+
+
+
+Access Matrix
+
+ View protection as a matrix (access matrix)
+
+ Rows represent domains
+
+ Columns represent objects
+
+ Access(i, j) is the set of operations that a process 
+executing in Domaini can invoke on Objectj
+
+17.16
+
+
+
+Use of Access Matrix 
+
+ If a process in Domain Di tries to do “op” on object Oj, then “op” 
+must be in the access matrix
+
+ User who creates object can define access column for that 
+object
+
+ Can be expanded to dynamic protection
+
+ Operations to add, delete access rights
+
+ Special access rights:
+
+ owner of Oi
+
+ copy op from Oi to Oj (denoted by “*”)
+
+ control – Di can modify Dj access rights
+
+ transfer – switch from domain Di to Dj
+
+ Copy and Owner applicable to an object
+
+ Control applicable to domain object
+
+17.17
+
+
+
+Use of Access Matrix (Cont.) 
+
+ Access matrix design separates mechanism from policy
+
+ Mechanism 
+
+ Operating system provides access-matrix + rules
+
+ If ensures that the matrix is only manipulated by authorized agents and 
+that rules are strictly enforced
+
+ Policy
+
+ User dictates policy
+
+ Who can access what object and in what mode
+
+ But doesn’t solve the general confinement problem
+
+17.18
+
+
+
+Access Matrix of Figure A with
+Domains as Objects
+
+17.19
+
+
+
+Access Matrix with Copy Rights 
+
+17.20
+
+
+
+Access Matrix With Owner Rights
+
+17.21
+
+
+
+Modified Access Matrix of Figure B 
+
+17.22
+
+
+
+Implementation of Access Matrix 
+
+ Generally, a sparse matrix
+
+ Option 1 – Global table
+
+ Store ordered triples <domain, object, rights-set> in table
+
+ A requested operation M on object Oj within domain Di -> search 
+table for < Di, Oj, Rk > 
+
+ with M ∈ Rk
+
+ But table could be large -> won’t fit in main memory
+
+ Difficult to group objects (consider an object that all domains can 
+read)
+
+17.23
+
+
+
+Implementation of Access Matrix
+
+ Option 2 – Access lists for objects
+
+ Each column implemented as an access list for one object
+
+ Resulting per-object list consists of ordered pairs <domain, rights-
+set> defining all domains with non-empty set of access rights for 
+the object
+
+ Easily extended to contain default set -> If M ∈ default set, also allow 
+access
+
+17.24
+
+
+
+Implementation of Access Matrix
+
+ Each column = Access-control list for one object 
+Defines who can perform what operation
+
+ Domain 1 = Read, Write
+ Domain 2 = Read
+ Domain 3 = Read
+        
+
+ Each Row = Capability List (like a key)
+For each domain, what operations allowed on what objects
+
+Object F1 – Read
+
+Object F4 – Read, Write, Execute
+
+Object F5 – Read, Write, Delete, Copy
+
+17.25
+
+
+
+Implementation of Access Matrix
+
+ Option 3 – Capability list for domains
+
+ Instead of object-based, list is domain based
+
+ Capability list for domain is list of objects together with operations 
+allows on them
+
+ Object represented by its name or address, called a capability
+
+ Execute operation M on object Oj, process requests operation and 
+specifies capability as parameter
+
+ Possession of capability means access is allowed
+
+ Capability list associated with domain but never directly accessible 
+by domain
+
+ Rather, protected object, maintained by OS and accessed indirectly
+
+ Like a “secure pointer”
+
+ Idea can be extended up to applications
+
+17.26
+
+
+
+Implementation of Access Matrix
+
+ Option 4 – Lock-key
+
+ Compromise between access lists and capability lists
+
+ Each object has list of unique bit patterns, called locks
+
+ Each domain as list of unique bit patterns called keys
+
+ Process in a domain can only access object if domain has key that 
+matches one of the locks
+
+17.27
+
+
+
+Comparison of Implementations 
+
+ Many trade-offs to consider
+
+ Global table is simple, but can be large
+
+ Access lists correspond to needs of users
+
+ Determining set of access rights for domain non-localized so difficult
+
+ Every access to an object must be checked
+
+ Many objects and access rights -> slow
+
+ Capability lists useful for localizing information for a given process
+
+ But revocation capabilities can be inefficient
+
+ Lock-key effective and flexible, keys can be passed freely from 
+domain to domain, easy revocation 
+
+17.28
+
+
+
+Comparison of Implementations
+
+ Most systems use combination of access lists and capabilities
+
+ First access to an object -> access list searched
+
+ If allowed, capability created and attached to process
+
+ Additional accesses need not be checked
+
+ After last access, capability destroyed
+
+ Consider file system with ACLs per file
+
+17.29
+
+
+
+Revocation of Access Rights
+
+ Various options to remove the access right of a domain to an 
+object
+
+ Immediate vs. delayed
+
+ Selective vs. general
+
+ Partial vs. total
+
+ Temporary vs. permanent
+
+ Access List – Delete access rights from access list
+
+ Simple – search access list and remove entry
+
+ Immediate, general or selective, total or partial, permanent or 
+temporary
+
+17.30
+
+
+
+Revocation of Access Rights
+
+ Capability List – Scheme required to locate capability in the 
+system before capability can be revoked
+
+ Reacquisition – periodic delete, with require and denial if 
+revoked
+
+ Back-pointers – set of pointers from each object to all capabilities 
+of that object (Multics)
+
+ Indirection – capability points to global table entry which points 
+to object – delete entry from global table, not selective (CAL)
+
+ Keys – unique bits associated with capability, generated when 
+capability created
+
+ Master key associated with object, key matches master key for access
+
+ Revocation – create new master key
+
+ Policy decision of who can create and modify keys – object owner or 
+others?
+
+17.31
+
+
+
+Role-based Access Control
+
+ Protection can be applied to 
+non-file resources
+
+ Oracle Solaris 10 provides role-
+based access control (RBAC) to 
+implement least privilege
+
+ Privilege is right to execute system 
+call or use an option within a 
+system call
+
+ Can be assigned to processes
+
+ Users assigned roles granting 
+access to privileges and programs
+
+ Enable role via password to gain 
+its privileges
+
+ Similar to access matrix
+
+17.32
+
+
+
+Mandatory Access Control (MAC) 
+
+ Operating systems traditionally had discretionary access control 
+(DAC) to limit access to files and other objects (for example 
+UNIX file permissions and Windows access control lists (ACLs))
+
+ Discretionary is a weakness – users / admins need to do something 
+to increase protection
+
+ Stronger form is mandatory access control, which even root user 
+can’t circumvent
+
+ Makes resources inaccessible except to their intended owners
+
+ Modern systems implement both MAC and DAC, with MAC usually a 
+more secure, optional configuration (Trusted Solaris, TrustedBSD 
+(used in macOS), SELinux), Windows Vista MAC)
+
+ At its heart, labels assigned to objects and subjects (including 
+processes)
+
+ When a subject requests access to an object, policy checked to 
+determine whether or not a given label-holding subject is allowed to 
+perform the action on the object 
+
+17.33
+
+
+
+Capability-Based Systems 
+
+ Hydra and CAP were first capability-based systems
+
+ Now included in Linux, Android and others, based on POSIX.1e 
+(that never became a standard)
+
+ Essentially slices up root powers into distinct areas, each represented 
+by a bitmap bit
+
+ Fine grain control over privileged operations can be achieved by 
+setting or masking the bitmap
+
+ Three sets of bitmaps – permitted, effective, and inheritable
+
+ Can apply per process or per thread
+
+ Once revoked, cannot be reacquired
+
+ Process or thread starts with all privs, voluntarily decreases set during 
+execution
+
+ Essentially a direct implementation of the principle of least privilege
+
+ An improvement over root having all privileges but inflexible 
+(adding new privilege difficult, etc.)
+
+17.34
+
+
+
+Capabilities in POSIX.1e 
+
+17.35
+
+
+
+Other Protection 
+Improvement Methods 
+
+ System integrity protection (SIP)
+
+ Introduced by Apple in macOS 10.11
+
+ Restricts access to system files and resources, even by root
+
+ Uses extended file attribs to mark a binary to restrict changes, disable 
+debugging and scrutinizing
+
+ Also, only code-signed kernel extensions allowed and configurably 
+only code-signed apps
+
+ System-call filtering
+
+ Like a firewall, for system calls
+
+ Can also be deeper –inspecting all system call arguments
+
+ Linux implements via SECCOMP-BPF (Berkeley packet filtering)
+
+17.36
+
+
+
+Other Protection
+Improvement Methods (Cont.)
+
+ Sandboxing
+
+ Running process in limited environment
+
+ Impose set of irremovable restrictions early in startup of process 
+(before main())
+
+ Process then unable to access any resources beyond its allowed set
+
+ Java and .net implement at a virtual machine level
+
+ Other systems use MAC to implement
+
+ Apple was an early adopter, from macOS 10.5’s “seatbelt” feature
+
+ Dynamic profiles written in the Scheme language, managing system calls 
+even at the argument level
+
+ Apple now does SIP, a system-wide platform profile
+
+17.37
+
+
+
+Other Protection
+Improvement Methods (Cont.)
+
+ Code signing allows a system to trust a program or script by 
+using crypto hash to have the developer sign the executable
+
+ So code as it was compiled by the author
+
+ If the code is changed, signature invalid and (some) systems 
+disable execution
+
+ Can also be used to disable old programs by the operating system 
+vendor (such as Apple) cosigning apps, and then invaliding those 
+signatures so the code will no longer run
+
+17.38
+
+
+
+Language-Based Protection
+
+ Specification of protection in a programming language allows 
+the high-level description of policies for the allocation and use 
+of resources
+
+ Language implementation can provide software for protection 
+enforcement when automatic hardware-supported checking is 
+unavailable
+
+ Interpret protection specifications to generate calls on 
+whatever protection system is provided by the hardware and 
+the operating system
+
+17.39
+
+
+
+Protection in Java 2
+
+ Protection is handled by the Java Virtual Machine (JVM)
+
+ A class is assigned a protection domain when it is loaded by the 
+JVM
+
+ The protection domain indicates what operations the class can 
+(and cannot) perform
+
+ If a library method is invoked that performs a privileged 
+operation, the stack is inspected to ensure the operation can be 
+performed by the library
+
+ Generally, Java’s load-time and run-time checks enforce type 
+safety
+
+ Classes effectively encapsulate and protect data and methods 
+from other classes
+
+17.40
+
+
+
+Stack Inspection
+
+17.41
+
+
+
+Topics Covered under Security 
+
+ The Security Problem
+
+ Program Threats
+
+ System and Network Threats
+
+ Cryptography as a Security Tool
+
+ User Authentication
+
+ Implementing Security Defenses
+
+ Firewalling to Protect Systems and Networks
+
+ Computer-Security Classifications
+
+ An Example: Windows 7
+
+17.42
+
+
+
+Objectives
+
+ Discuss security threats and attacks
+
+ Explain the fundamentals of encryption, authentication, and 
+hashing
+
+ Examine the uses of cryptography in computing
+
+ Describe the various countermeasures to security attacks
+
+17.43
+
+
+
+The Security Problem 
+
+ System secure if resources used and accessed as intended 
+under all circumstances
+
+ Unachievable
+
+ Intruders (crackers) attempt to breach security
+
+ Threat is potential security violation
+
+ Attack is attempt to breach security
+
+ Attack can be accidental or malicious
+
+ Easier to protect against accidental than malicious misuse
+
+17.44
+
+
+
+Security Violation Categories 
+
+ Breach of confidentiality
+
+ Unauthorized reading of data
+
+ Breach of integrity
+
+ Unauthorized modification of data
+
+ Breach of availability
+
+ Unauthorized destruction of data
+
+ Theft of service
+
+ Unauthorized use of resources
+
+ Denial of service (DOS)
+
+ Prevention of legitimate use
+
+17.45
+
+
+
+Security Violation Methods 
+
+ Masquerading (breach authentication)
+
+ Pretending to be an authorized user to escalate privileges
+
+ Replay attack
+
+ As is or with message modification
+
+ Man-in-the-middle attack
+
+ Intruder sits in data flow, masquerading as sender to receiver and 
+vice versa
+
+ Session hijacking
+
+ Intercept an already-established session to bypass authentication
+
+ Privilege escalation
+
+ Common attack type with access beyond what a user or resource 
+is supposed to have
+
+17.46
+
+
+
+Security Measure Levels 
+
+ Impossible to have absolute security, but make cost to 
+perpetrator sufficiently high to deter most intruders
+
+ Security must occur at four levels to be effective:
+
+ Physical
+
+ Data centers, servers, connected terminals
+
+ Application
+
+ Benign or malicious apps can cause security problems
+
+ Operating System
+
+ Protection mechanisms, debugging
+
+ Network
+
+ Intercepted communications, interruption, DOS
+
+ Security is as weak as the weakest link in the chain
+
+ Humans a risk too via phishing and social-engineering attacks
+
+ But can too much security be a problem?
+
+17.47
+
+
+
+Program Threats 
+
+ Many variations, many names
+
+ Trojan Horse
+
+ Code segment that misuses its environment
+
+ Exploits mechanisms for allowing programs written by users to be 
+executed by other users
+
+ Spyware, pop-up browser windows, covert channels
+
+ Up to 80% of spam delivered by spyware-infected systems
+
+ Trap Door
+
+ Specific user identifier or password that circumvents normal security 
+procedures
+
+ Could be included in a compiler
+
+ How to detect them?
+
+17.48
+
+
+
+Four-layered Model of Security 
+
+17.49
+
+
+
+Program Threats (Cont.)
+
+ Malware - Software designed to exploit, disable, or damage computer
+
+ Trojan Horse – Program that acts in a clandestine manner
+
+ Spyware – Program frequently installed with legitimate software to display 
+adds, capture user data
+
+ Ransomware – locks up data via encryption, demanding payment to unlock 
+it
+
+ Others include trap doors, logic boms
+
+ All try to violate the Principle of Least Privilege
+
+ Goal frequently is to leave behind Remote Access Tool (RAT) for repeated 
+access
+
+17.50
+
+
+
+C Program with Buffer-overflow Condition
+
+#include <stdio.h>
+
+#define BUFFER SIZE 256
+
+int main(int argc, char *argv[])
+
+{
+
+ char buffer[BUFFER SIZE];
+
+ if (argc < 2)
+
+  return -1;
+
+ else {
+
+  strcpy(buffer,argv[1]);
+
+  return 0;
+
+ }
+
+}
+
+▪ Code review can help – programmers review each other’s 
+code, looking for logic flows, programming flaws
+
+17.51
+
+
+
+Code Injection
+
+▪ Code-injection attack occurs when system code is not 
+malicious but has bugs allowing executable code to be added 
+or modified
+
+• Results from poor or insecure programming paradigms, 
+commonly in low level languages like C or C++ which allow 
+for direct memory access through pointers
+
+• Goal is a buffer overflow in which code is placed in a buffer 
+and execution caused by the attack
+
+• Can be run by script kiddies – use tools written but exploit 
+identifiers
+
+17.52
+
+
+
+Code Injection (Cont.)
+
+• Outcomes from code injection 
+include:
+
+• Frequently use trampoline to 
+code execution to exploit 
+buffer overflow: 
+
+17.53
+
+
+
+Great Programming Required? 
+
+ For the first step of determining the bug, and second step of 
+writing exploit code, yes
+
+ Script kiddies can run pre-written exploit code to attack a given 
+system
+
+ Attack code can get a shell with the processes’ owner’s 
+permissions
+
+ Or open a network port, delete files, download a program, etc.
+
+ Depending on bug, attack can be executed across a network 
+using allowed connections, bypassing firewalls
+
+ Buffer overflow can be disabled by disabling stack execution or 
+adding bit to page table to indicate “non-executable” state
+
+ Available in SPARC and x86
+
+ But still have security exploits
+
+17.54
+
+
+
+Program Threats (Cont.)
+
+ Viruses
+
+ Code fragment embedded in legitimate program
+
+ Self-replicating, designed to infect other computers
+
+ Very specific to CPU architecture, operating system, applications
+
+ Usually borne via email or as a macro
+
+ Visual Basic Macro to reformat hard drive
+
+Sub AutoOpen()
+
+Dim oFS
+
+ Set oFS = CreateObject(’’Scripting.FileSystemObject’’)
+
+ vs = Shell(’’c:command.com /k format c:’’,vbHide)
+
+End Sub
+
+17.55
+
+
+
+Program Threats (Cont.)
+
+ Virus dropper inserts virus onto the system
+
+ Many categories of viruses, literally many thousands of viruses
+
+ File / parasitic
+
+ Boot / memory
+
+ Macro
+
+ Source code
+
+ Polymorphic to avoid having a virus signature
+
+ Encrypted
+
+ Stealth
+
+ Tunneling
+
+ Multipartite
+
+ Armored
+
+17.56
+
+
+
+A Boot-sector Computer Virus
+
+17.57
+
+
+
+The Threat Continues
+
+ Attacks still common, still occurring
+
+ Attacks moved over time from science experiments to tools of 
+organized crime
+
+ Targeting specific companies
+
+ Creating botnets to use as tool for spam and DDOS delivery
+
+ Keystroke logger to grab passwords, credit card numbers
+
+ Why is Windows the target for most attacks?
+
+ Most common
+
+ Everyone is an administrator
+
+ Licensing required?
+
+ Monoculture considered harmful
+
+17.58
+
+
+
+System and Network Threats
+
+ Some systems “open” rather than secure by default
+
+ Reduce attack surface
+
+ But harder to use, more knowledge needed to administer
+
+ Network threats harder to detect, prevent
+
+ Protection systems weaker
+
+ More difficult to have a shared secret on which to base access
+
+ No physical limits once system attached to internet
+
+ Or on network with system attached to internet
+
+ Even determining location of connecting system difficult
+
+ IP address is only knowledge
+
+17.59
+
+
+
+System and Network Threats 
+
+ Worms – use spawn mechanism; standalone program
+
+ Internet worm
+
+ Exploited UNIX networking features (remote access) and bugs in 
+finger and sendmail programs
+
+ Exploited trust-relationship mechanism used by rsh to access 
+friendly systems without use of password
+
+ Grappling hook program uploaded main worm program
+
+ 99 lines of C code 
+
+ Hooked system then uploaded main code, tried to attack 
+connected systems
+
+ Also tried to break into other users accounts on local system via 
+password guessing
+
+ If target system already infected, abort, except for every 7th time
+
+17.60
+
+
+
+System and Network Threats
+
+ Port scanning
+
+ Automated attempt to connect to a range of ports on one or a 
+range of IP addresses
+
+ Detection of answering service protocol
+
+ Detection of OS and version running on system
+
+ nmap scans all ports in a given IP range for a response
+
+ nessus has a database of protocols and bugs (and exploits) to 
+apply against a system
+
+ Frequently launched from zombie systems 
+
+ To decrease trace-ability 
+
+17.61
+
+
+
+System and Network Threats
+
+ Denial of Service
+
+ Overload the targeted computer preventing it from doing any useful work
+
+ Distributed Denial-of-Service (DDoS) come from multiple sites at once
+
+ Consider the start of the IP-connection handshake (SYN)
+
+ How many started-connections can the OS handle?
+
+ Consider traffic to a web site
+
+ How can you tell the difference between being a target and being really 
+popular?
+
+ Accidental – CS students writing bad fork() code
+
+ Purposeful – extortion, punishment
+
+ Port scanning
+
+ Automated tool to look for network ports accepting connections
+
+ Used for good and evil
+
+17.62
+
+
+
+Standard Security Attacks
+
+17.63
+
+
+
+Cryptography as a Security Tool
+
+ Broadest security tool available
+
+ Internal to a given computer, source and destination of messages 
+can be known and protected
+
+ OS creates, manages, protects process IDs, communication ports
+
+ Source and destination of messages on network cannot be trusted 
+without cryptography
+
+ Local network – IP address?
+
+ Consider unauthorized host added
+
+ WAN / Internet – how to establish authenticity 
+
+ Not via IP address
+
+17.64
+
+
+
+Cryptography
+
+ Means to constrain potential senders (sources) and / or receivers 
+(destinations) of messages
+
+ Based on secrets (keys)
+
+ Enables
+
+ Confirmation of source
+
+ Receipt only by certain destination
+
+ Trust relationship between sender and receiver
+
+17.65
+
+
+
+Encryption
+
+ Constrains the set of possible receivers of a message
+
+ Encryption algorithm consists of
+
+ Set K of keys
+
+ Set M of Messages
+
+ Set C of ciphertexts (encrypted messages)
+
+ A function E : K → (M→C). That is, for each k  K, Ek is a function for 
+generating ciphertexts from messages
+
+ Both E and Ek for any k should be efficiently computable functions
+
+ A function D : K → (C → M). That is, for each k  K, Dk is a function for 
+generating messages from ciphertexts
+
+ Both D and Dk for any k should be efficiently computable functions
+
+17.66
+
+
+
+Encryption
+
+ An encryption algorithm must provide this essential property: 
+Given a ciphertext c  C, a computer can compute m such 
+that Ek(m) = c only if it possesses k
+
+ Thus, a computer holding k can decrypt ciphertexts to the 
+plaintexts used to produce them, but a computer not holding k 
+cannot decrypt ciphertexts
+
+ Since ciphertexts are generally exposed (for example, sent on the 
+network), it is important that it be infeasible to derive k from the 
+ciphertexts
+
+17.67
+
+
+
+Symmetric Encryption
+ Same key used to encrypt and decrypt
+
+ Therefore k must be kept secret
+
+ DES was most commonly used symmetric block-encryption algorithm (created by 
+US Govt)
+
+ Encrypts a block of data at a time
+
+ Keys too short so now considered insecure
+
+ Triple-DES considered more secure
+
+ Algorithm used 3 times using 2 or 3 keys
+
+ For example 
+
+ 2001 NIST adopted new block cipher - Advanced Encryption Standard (AES)
+
+ Keys of 128, 192, or 256 bits, works on 128 bit blocks
+
+ RC4 is most common symmetric stream cipher, but known to have vulnerabilities
+
+ Encrypts/decrypts a stream of bytes (i.e., wireless transmission)
+
+ Key is a input to pseudo-random-bit generator
+
+ Generates an infinite keystream
+
+17.68
+
+
+
+Secure Communication over 
+Insecure Medium
+
+17.69
+
+
+
+Asymmetric Encryption
+
+ Public-key encryption based on each user having two keys:
+
+ public key – published key used to encrypt data
+
+ private key – key known only to individual user used to decrypt data
+
+ Must be an encryption scheme that can be made public 
+without making it easy to figure out the decryption scheme
+
+ Most common is RSA block cipher
+
+ Efficient algorithm for testing whether or not a number is prime
+
+ No efficient algorithm is know for finding the prime factors of a 
+number
+
+17.70
+
+
+
+Asymmetric Encryption
+
+ Formally, it is computationally infeasible to derive kd,N from ke,N, 
+and so ke need not be kept secret and can be widely 
+disseminated
+
+ ke is the public key
+
+ kd is the private key
+
+ N is the product of two large, randomly chosen prime numbers p 
+and q (for example, p and q are 512 bits each)
+
+ Encryption algorithm is Eke,N(m) = mke mod N, where ke satisfies kekd 
+mod (p−1)(q −1) = 1
+
+ The decryption algorithm is then Dkd,N(c) = ckd mod N
+
+17.71
+
+
+
+Asymmetric Encryption Example
+
+ For example. make p = 7and q = 13
+
+ We then calculate N = 7∗13 = 91 and (p−1)(q−1) = 72
+
+ We next select ke relatively prime to 72 and< 72, yielding 5
+
+ Finally, we calculate kd such that kekd mod 72 = 1, yielding 29
+
+ We how have our keys
+
+ Public key, ke,N = 5, 91
+
+ Private key, kd,N = 29, 91
+
+  Encrypting the message 69 with the public key results in the 
+cyphertext 62
+
+ Cyphertext can be decoded with the private key
+
+ Public key can be distributed in cleartext to anyone who wants to 
+communicate with holder of public key
+
+17.72
+
+
+
+Encryption using 
+RSA Asymmetric Cryptography
+
+17.73
+
+
+
+Cryptography (Cont.)
+
+ Note symmetric cryptography based on transformations, 
+asymmetric based on mathematical functions
+
+ Asymmetric much more compute intensive
+
+ Typically not used for bulk data encryption 
+
+17.74
+
+
+
+Authentication
+
+ Constraining set of potential senders of a message
+
+ Complementary to encryption
+
+ Also can prove message unmodified
+
+ Algorithm components
+
+ A set K of keys
+
+ A set M of messages
+
+ A set A of authenticators
+
+ A function S : K → (M→ A)
+
+ That is, for each k  K, Sk is a function for generating authenticators from 
+messages
+
+ Both S and Sk for any k should be efficiently computable functions
+
+ A function V : K → (M × A→ {true, false}). That is, for each k  K, Vk is a 
+function for verifying authenticators on messages
+
+ Both V and Vk for any k should be efficiently computable functions
+
+17.75
+
+
+
+Authentication (Cont.)
+
+ For a message m, a computer can generate an authenticator 
+a  A such that Vk(m, a) = true only if it possesses k
+
+ Thus, computer holding k can generate authenticators on 
+messages so that any other computer possessing k can verify 
+them
+
+ Computer not holding k cannot generate authenticators on 
+messages that can be verified using Vk
+
+ Since authenticators are generally exposed (for example, they 
+are sent on the network with the messages themselves), it must 
+not be feasible to derive k from the authenticators
+
+ Practically, if Vk(m,a) = true then we know m has not been 
+modified and that send of message has k
+
+ If we share k with only one entity, know where the message 
+originated 
+
+17.76
+
+
+
+Authentication – Hash Functions
+
+ Basis of authentication
+
+ Creates small, fixed-size block of data message digest (hash 
+value) from m
+
+ Hash Function H must be collision resistant on m
+
+ Must be infeasible to find an m’ ≠ m such that H(m) = H(m’)
+
+ If H(m) = H(m’), then m = m’
+
+ The message has not been modified
+
+ Common message-digest functions include MD5, which 
+produces a 128-bit hash, and SHA-1, which outputs a 160-bit 
+hash
+
+ Not useful as authenticators
+
+ For example H(m) can be sent with a message
+
+ But if H is known someone could modify m to m’ and recompute 
+H(m’) and modification not detected
+
+ So must authenticate H(m)
+
+17.77
+
+
+
+Authentication - MAC
+
+ Symmetric encryption used in message-authentication code 
+(MAC) authentication algorithm
+
+ Cryptographic checksum generated from message using secret 
+key
+
+ Can securely authenticate short values 
+
+ If used to authenticate H(m) for an H that is collision resistant, 
+then obtain a way to securely authenticate long message by 
+hashing them first
+
+ Note that k is needed to compute both Sk and Vk, so anyone 
+able to compute one can compute the other
+
+17.78
+
+
+
+Authentication – Digital Signature
+
+ Based on asymmetric keys and digital signature algorithm
+
+ Authenticators produced are digital signatures
+
+ Very useful – anyone can verify authenticity of a message
+
+ In a digital-signature algorithm, computationally infeasible to 
+derive ks from kv
+
+ V is a one-way function
+
+ Thus, kv is the public key and ks is the private key
+
+ Consider the RSA digital-signature algorithm
+
+ Similar to the RSA encryption algorithm, but the key use is reversed
+
+ Digital signature of message Sks (m) = H(m)ks mod N
+
+ The key ks again is a pair (d, N), where N is the product of two large, 
+randomly chosen prime numbers p and q
+
+ Verification algorithm is Vkv(m, a)    (akv mod N = H(m))
+
+ Where kv satisfies kvks mod (p − 1)(q − 1) = 1
+
+17.79
+
+
+
+Authentication (Cont.)
+
+ Why authentication if a subset of encryption?
+
+ Fewer computations (except for RSA digital signatures)
+
+ Authenticator usually shorter than message
+
+ Sometimes want authentication but not confidentiality
+
+ Signed patches et al
+
+ Can be basis for non-repudiation
+
+17.80
+
+
+
+Key Distribution
+
+ Delivery of symmetric key is huge challenge
+
+ Sometimes done out-of-band
+
+ Asymmetric keys can proliferate – stored on key ring
+
+ Even asymmetric key distribution needs care – man-in-the-middle 
+attack
+
+17.81
+
+
+
+Digital Certificates
+
+ Proof of who or what owns a public key
+
+ Public key digitally signed a trusted party
+
+ Trusted party receives proof of identification from entity and 
+certifies that public key belongs to entity
+
+ Certificate authority are trusted party – their public keys 
+included with web browser distributions
+
+ They vouch for other authorities via digitally signing their keys, and 
+so on
+
+17.82
+
+
+
+Man-in-the-middle Attack on 
+Asymmetric Cryptography
+
+17.83
+
+
+
+Implementation of Cryptography
+
+ Can be done at various 
+layers of ISO Reference 
+Model
+
+ SSL at the Transport layer
+
+ Network layer is typically 
+IPSec
+
+ IKE for key exchange
+
+ Basis of Virtual Private 
+Networks (VPNs)
+
+ Why not just at lowest level?
+
+ Sometimes need more 
+knowledge than available 
+at low levels Source: 
+
+http://en.wikipedia.org/wiki/OSI_mo
+del
+
+ i.e., User 
+authentication
+
+ i.e., e-mail delivery
+
+17.84
+
+
+
+Encryption Example - TLS
+
+ Insertion of cryptography at one layer of the ISO network 
+model (the transport layer)
+
+ SSL – Secure Socket Layer (also called TLS)
+
+ Cryptographic protocol that limits two computers to only 
+exchange messages with each other
+
+ Very complicated, with many variations
+
+ Used between web servers and browsers for secure 
+communication (credit card numbers)
+
+ The server is verified with a certificate assuring client is talking to 
+correct server
+
+ Asymmetric cryptography used to establish a secure session 
+key (symmetric encryption) for bulk of communication during 
+session
+
+ Communication between each computer then uses symmetric 
+key cryptography
+
+ More details in textbook
+
+17.85
+
+
+
+User Authentication
+
+ Crucial to identify user correctly, as protection systems depend on user ID
+
+ User identity most often established through passwords, can be considered a 
+special case of either keys or capabilities
+
+ Passwords must be kept secret
+
+ Frequent change of passwords
+
+ History to avoid repeats
+
+ Use of “non-guessable” passwords
+
+ Log all invalid access attempts (but not the passwords themselves)
+
+ Unauthorized transfer
+
+ Passwords may also either be encrypted or allowed to be used only once
+
+ Does encrypting passwords solve the exposure problem?
+
+ Might solve sniffing
+
+ Consider shoulder surfing
+
+ Consider Trojan horse keystroke logger
+
+ How are passwords stored at authenticating site?
+
+17.86
+
+
+
+Passwords 
+
+ Encrypt to avoid having to keep secret
+
+ But keep secret anyway (i.e. Unix uses superuser-only readably file 
+/etc/shadow)
+
+ Use algorithm easy to compute but difficult to invert
+
+ Only encrypted password stored, never decrypted
+
+ Add “salt” to avoid the same password being encrypted to the same 
+value
+
+ One-time passwords
+
+ Use a function based on a seed to compute a password, both user and 
+computer
+
+ Hardware device / calculator / key fob to generate the password
+
+ Changes very frequently
+
+ Biometrics
+
+ Some physical attribute (fingerprint, hand scan)
+
+ Multi-factor authentication
+
+ Need two or more factors for authentication
+
+ i.e., USB “dongle”, biometric measure, and password
+
+17.87
+
+
+
+Passwords (Cont.) 
+
+17.88
+
+
+
+Implementing Security Defenses
+ Defense in depth is most common security theory – multiple layers of security
+
+ Security policy describes what is being secured
+
+ Vulnerability assessment compares real state of system / network compared 
+to security policy
+
+ Intrusion detection endeavors to detect attempted or successful intrusions
+
+ Signature-based detection spots known bad patterns
+
+ Anomaly detection spots differences from normal behavior
+
+ Can detect zero-day attacks
+
+ False-positives and false-negatives a problem
+
+ Virus protection
+
+ Searching all programs or programs at execution for known virus patterns
+
+ Or run in sandbox so can’t damage system
+
+ Auditing, accounting, and logging of all or specific system or network 
+activities
+
+ Practice safe computing – avoid sources of infection, download from only 
+“good” sites, etc
+
+17.89
+
+
+
+Firewalling to Protect Systems
+and Networks
+
+ A network firewall is placed between trusted and untrusted hosts
+
+ The firewall limits network access between these two security 
+domains
+
+ Can be tunneled or spoofed
+
+ Tunneling allows disallowed protocol to travel within allowed 
+protocol (i.e., telnet inside of HTTP)
+
+ Firewall rules typically based on host name or IP address which can 
+be spoofed
+
+ Personal firewall is software layer on given host
+
+ Can monitor / limit traffic to and from the host
+
+ Application proxy firewall understands application protocol and 
+can control them (i.e., SMTP)
+
+ System-call firewall monitors all important system calls and apply 
+rules to them (i.e., this program can execute that system call)
+
+17.90
+
+
+
+Network Security Through
+Domain Separation Via Firewall
+
+17.91
+
+
+
+Computer Security Classifications
+
+ U.S. Department of Defense outlines four divisions of computer 
+security: A, B, C, and D
+
+ D – Minimal security
+
+ C – Provides discretionary protection through auditing
+
+ Divided into C1 and C2
+
+ C1 identifies cooperating users with the same level of protection
+
+ C2 allows user-level access control
+
+ B – All the properties of C, however each object may have 
+unique sensitivity labels
+
+ Divided into B1, B2, and B3
+
+ A – Uses formal design and verification techniques to ensure 
+security
+
+17.92
+
+
+
+Security Defenses Summarized
+ By applying appropriate layers of defense, we can keep systems 
+
+safe from all but the most persistent attackers. In summary, these 
+layers may include the following:
+
+ Educate users about safe computing—don’t attach devices of unknown 
+origin to the computer, don’t share passwords, use strong passwords, 
+avoid falling for social engineering appeals, realize that an e-mail is not 
+necessarily a private communication, and so on
+
+ Educate users about how to prevent phishing attacks—don’t click on 
+email attachments or links from unknown (or even known) senders; 
+authenticate (for example, via a phone call) that a request is legitimate
+
+ Use secure communication when possible
+
+ Physically protect computer hardware
+
+ Configure the operating system to minimize the attack surface; disable 
+all unused services
+
+ Configure system daemons, privileges applications, and services to be 
+as secure as possible
+
+17.93
+
+
+
+Security Defenses Summarized
+
+ Use modern hardware and software, as they are likely to have 
+up-to-date security features
+
+ Keep systems and applications up to date and patched
+
+ Only run applications from trusted sources (such as those that are 
+code signed)
+
+ Enable logging and auditing; review the logs periodically, or 
+automate alerts
+
+ Install and use antivirus software on systems susceptible to viruses, 
+and keep the software up to date
+
+ Use strong passwords and passphrases, and don’t record them 
+where they could be found
+
+ Use intrusion detection, firewalling, and other network-based 
+protection systems as appropriate
+
+ For important facilities, use periodic vulnerability assessments and 
+other testing methods to test security and response to incidents
+
+17.94
+
+
+
+Security Defenses Summarized 
+
+ Encrypt mass-storage devices, and consider encrypting 
+important individual files as well
+
+ Have a security policy for important systems and facilities, 
+and keep it up to date
+
+17.95
+
+
+
+Example: Windows 10
+
+ Security is based on user accounts
+
+ Each user has unique security ID
+
+ Login to ID creates security access token
+
+ Includes security ID for user, for user’s groups, and special privileges
+
+ Every process gets copy of token
+
+ System checks token to determine if access allowed or denied
+
+ Uses a subject model to ensure access security
+
+ A subject tracks and manages permissions for each program that a 
+user runs
+
+ Each object in Windows has a security attribute defined by a 
+security descriptor
+
+ For example, a file has a security descriptor that indicates the 
+access permissions for all users
+
+17.96
+
+
+
+Example: Windows 7 (Cont.)
+
+ Win added mandatory integrity controls – assigns integrity label 
+to each securable object and subject
+
+ Subject must have access requested in discretionary access-control 
+list to gain access to object
+
+ Security attributes described by security descriptor
+
+ Owner ID, group security ID, discretionary access-control list, system 
+access-control list
+
+ Objects are either container objects (containing other objects, 
+for example a file system directory) or noncontainer objects
+
+ By default an object created in a container inherits permissions from 
+the parent object
+
+ Some Win 10 security challenges result from security settings 
+being weak by default, the number of services included in a 
+Win 10 system, and the number of applications typically 
+installed on a Win 10 system
+
+17.97
+
+
+
+Thank You
